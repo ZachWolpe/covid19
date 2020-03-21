@@ -1,0 +1,260 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Lets Save the World, Together.
+
+```{r}
+
+
+library(tidyverse)
+library(coronavirus)
+
+# library(tidyr)
+# library(dplyr)
+
+library(sf)
+library(raster)
+library(spData)
+library(ggspatial)
+# library(spDataLarge)
+
+
+
+
+
+
+
+
+
+
+library(rlist)
+library(stringi)
+library(htmltab)
+
+# visualization
+library(tmap)    
+library(leaflet) 
+#library(mapview)
+library(ggplot2) 
+library(shiny)  
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+library(maptools)
+library(rvest)
+library(RColorBrewer)
+
+
+
+# source: https://en.wikipedia.org/wiki/List_of_South_African_provinces_by_population
+population <- data.frame(province = c("Gauteng", "KwaZulu-Natal", "Western Cape", "Eastern Cape", "Limpopo", "Mpumalanga", "North West", "Free State", "Northern Cape"),
+                         # population = c(14278669, 11074784, 6510312, 6498683, 5778442, 4444212, 3856174, 2866678, 1213996)
+                           population = c('14.3m', '11m', '6.5m', '6.5m', '5.8m', '4.4m', '3.86m', '2.87m','1.2m')
+
+)
+
+
+# Get South African Covid Data
+
+covid_sa_url <- 'https://en.wikipedia.org/wiki/2020_coronavirus_pandemic_in_South_Africa'
+covid_sa <- read_html(covid_sa_url) %>% html_node(xpath='//*[@id="mw-content-text"]/div/table[3]') %>% html_table(fill=T)
+covid_sa
+
+
+
+# Read data
+south_africa <- readShapeSpatial('gadm36_ZAF_shp/gadm36_ZAF_1.shp')
+plot(south_africa)
+
+
+# source: http://www.tageo.com/index-e-sf-cities-ZA.htm
+coordinates_cities <- data.frame(city = c("Cape Town", "Durban", "Johannesburg", "Pretoria", "Soweto"),
+                                 lat = c(-33.930, -29.870, -26.190, -25.730, -26.280),
+                                 lon = c(18.460, 30.990, 28.040, 28.220, 27.840))
+
+
+summary(south_africa)
+
+
+
+
+# Extract number of cases
+test <- t(covid_sa[covid_sa$Date=='Cases',1:10])
+test <- data.frame(test[2:nrow(test),])
+colnames(test) <- 'Cases'
+
+# add to dataframe
+south_africa@data <- cbind(test, south_africa@data)
+
+```
+
+```{r}
+# add province data
+
+province <- c('Western Cape','Eastern Cape','Northern Cape', 'Free State', 'KwaZulu-Natal', 'North West', 'Gauteng', 'Mpumalanga', 'Limpopo')
+population <- c(6621103, 6522734, 1225555, 2954348, 11384722, 3978955, 14717040, 4523874, 5797275)
+density <- c(51.1, 38.6, 3.3, 22.8, 120.7, 37.9, 809.6, 59.1, 46.1)
+
+provincial.data <- data.frame(province, population, density, stringsAsFactors=FALSE)
+
+south_africa@data
+
+south_africa@data <- merge(south_africa@data, provincial.data, by.x='NAME_1', by.y='province')
+```
+
+# visualize
+
+```{r}
+library(tmap)    
+library(leaflet) 
+#library(mapview)
+library(ggplot2) 
+library(htmlwidgets)
+
+
+tmap_mode('view')
+tmap_mode('plot')
+
+map <- tm_shape(south_africa) +
+  tm_layout(title='Confirmed Cases in SA') + 
+  tm_borders(alpha=0.3) +
+  tm_fill('Cases', id='NAME_1', title='Confirmed Cases', palette=c(RColorBrewer::brewer.pal(9, 'OrRd')), 
+          popup.vars=c('cases'="Cases", "population", 'pop density'="density"))
+
+
+map <- tmap_leaflet(map)
+
+saveWidget(widget=map, 'map.html')
+
+
+
+
+
+```
+
+
+
+
+```{r}
+Age <- c('0-9', '10-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+')
+Male <- c('5 292 766','4 842 847','5 237 328','3 754 553','2 598 068','1 823 299','1 013 912','458 781','176 237')
+Female <- c('5 212 437', '4 755 516', '5 196 531', '2 751 224', '2 970 834', '2 192 398', '1 329 660', '770 816', '402 352')
+total <- c('10 505 203','9 598 363','10 433 859','6 505 777','5 568 902','4 015 697','2 343 572','1 229 597','419 989' )
+age.data <- data.frame(Age, Male, Female,total, stringsAsFactors=FALSE)
+
+```
+
+
+
+
+
+
+```{r}
+library('ggrepel')
+library('ggplot2')
+
+# remotes::install_github("GuangchuangYu/nCov2019")
+# remotes::install_github("GuangchuangYu/chinamap")
+
+
+#________________________________ WORLD MAP _________________________________
+
+
+library(nCov2019)
+library(chinamap)
+
+
+
+unique(y['global']$country)
+
+
+confirmed_cases_growth <- function(countries) {
+  y <- load_nCov2019(lang = 'en')
+  d <- subset(y['global'], country == countries)
+  
+  ggplot(d, aes(time, as.numeric(cum_confirm), group = country, color = country)) + 
+    geom_point() + geom_line() +
+    geom_label_repel(aes(label = country), 
+                     data = d[d$time == time(y), ], hjust = 1) +
+    theme_bw() + theme(legend.position = 'none') +
+    xlab(NULL) + ylab(NULL) + 
+    scale_x_date(date_labels = "%Y-%m-%d",
+                 limits = c(as.Date("2020-03-12"), as.Date("2020-03-19"))) +
+    theme(axis.text.x = element_text(angle = 15, hjust = 1)) +
+    labs(title = "Outbreak Trend Curves of Countries Around the World \n (except China)")
+}
+
+
+confirmed_cases_growth(c("South Africa"))
+
+```
+
+
+
+
+ ____________________________________________________   ___ ___ ___   ____________________________________________________
+ ____________________________________________________                 ____________________________________________________
+ ____________________________________________________  Extra Sources  ____________________________________________________
+ ____________________________________________________                 ____________________________________________________
+ ____________________________________________________   ___ ___ ___   ____________________________________________________
+ 
+ 
+
+# Valuable Sources
+## Textbooks
+https://geocompr.robinlovelace.net/
+https://www.r-spatial.org/r/2018/10/25/ggplot2-sf.html
+
+
+# SA corona data
+https://en.wikipedia.org/wiki/2020_coronavirus_pandemic_in_South_Africa
+
+https://www.youtube.com/watch?v=GMi1ThlGFMo
+
+
+
+# WHO data
+https://github.com/eebrown/data2019nCoV
+
+
+
+
+https://bhaskarvk.github.io/user2017.geodataviz/notebooks/03-Interactive-Maps.nb.html
+
+
+# SA shape files
+https://www.worldfullofdata.com/r-tutorial-plot-maps-shapefiles/
+
+# GeoData
+https://gadm.org/data.html
+
+```{r}
+
+devtools::install_github("eebrown/data2019nCoV")
+library('data2019nCoV')
+
+names(WHO_SR)
+WHO_SR['SouthAfrica']
+WHO_SR$SouthAfrica
+sarscov2_who_2019
+
