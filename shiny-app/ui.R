@@ -1,6 +1,7 @@
 
 # Dependencies
-# library(mapview)
+
+# remotes::install_github("GuangchuangYu/nCov2019")
 library(shiny)
 library(shiny)
 library(tidyverse)
@@ -20,6 +21,7 @@ library(nCov2019)
 library(chinamap)
 library(plotly)
 library(tidyr)
+library(ggrepel)
 setwd("~/Desktop/covid19")
 
 
@@ -32,7 +34,10 @@ shinyUI(fluidPage(
     
     sidebarLayout(
         sidebarPanel(
-            selectizeInput('select', 'Countries', countries, multiple=T)
+            selectInput('con_a', 'Country 1', selected='South Africa', countries),
+            selectInput('con_b', 'Country 3', selected='China', countries),
+            selectInput('con_c', 'Country 4', selected='Italy', countries),
+            selectInput('con_d', 'Country 2', selected='United States', countries)
         ),
         
         
@@ -40,7 +45,15 @@ shinyUI(fluidPage(
             leafletOutput('south_africa'),
             br(),
             br(),
-            leafletOutput('globe')
+            leafletOutput('globe'),
+            br(),
+            br(),
+            column(12, 
+                   column(6,plotOutput('con_a')),
+                   column(6,plotOutput('con_b')),
+                   column(6,plotOutput('con_c')),
+                   column(6,plotOutput('con_d')))
+    
         )
     )
 ))

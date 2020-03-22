@@ -2,7 +2,61 @@
 
 
 
-library(shiny)
+
+
+# _______________________________________________________________________________________________________________________________________
+#  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - External Functions - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# _______________________________________________________________________________________________________________________________________
+
+
+active_ratio_donut_graph <- function(world, country) {
+  # Circular Graphic: Case Distribution
+  
+  x <- filter(world, name==country)                                         # filter data  
+  x$active <- (x$cases - x$cum_heal - x$cum_dead)                           # compute active 
+  data <- data.frame(country=country,                                       # Create data
+                     category=c("Active", "Deaths", "Recovered"), 
+                     count=c(x$active, x$cum_dead, x$cum_heal))
+  
+  data$fraction <- data$count / sum(data$count)                             # Compute percentages
+  data$ymax <- cumsum(data$fraction)                                        # Compute the cumulative percentages (top of each rectangle)
+  data$ymin <- c(0, head(data$ymax, n=-1))                                  # Compute the bottom of each rectangle
+  data$labelPosition <- (data$ymax + data$ymin) / 2                         # Compute label position
+  data$label <- paste0(data$category, "\n", data$count)                     # Compute a good label
+  
+  # Make the plot
+  ggplot(data, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=category)) +
+    geom_rect() +
+    geom_text_repel(x=1, aes(y=labelPosition, label=label, color=category), size=6) +
+    # geom_text() + # x here controls label position (inner / outer)
+    scale_fill_brewer(palette=3) +
+    scale_color_brewer(palette=3) +
+    coord_polar(theta="y") +
+    xlim(c(-1, 4)) +
+    theme_void() +
+    theme(legend.position = "none") +
+    labs(title = paste("Covid-19", data$country, "Summary")) +
+    theme(plot.title = element_text(hjust = 0.5, size = 18, colour = 'darkgrey'))
+}
+
+
+# _______________________________________________________________________________________________________________________________________
+#  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - External Functions - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# _______________________________________________________________________________________________________________________________________
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 shinyServer(function(input, output) {
     
@@ -25,14 +79,14 @@ shinyServer(function(input, output) {
     })
     
     
-    # --- Add later ---               # Gender & Age demographics
-  #  Age <- c('0-9', '10-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+')
-  #  Male <- c('5 292 766','4 842 847','5 237 328','3 754 553','2 598 068','1 823 299','1 013 912','458 781','176 237')
-  #  Female <- c('5 212 437', '4 755 516', '5 196 531', '2 751 224', '2 970 834', '2 192 398', '1 329 660', '770 816', '402 352')
-  #  total <- c('10 505 203','9 598 363','10 433 859','6 505 777','5 568 902','4 015 697','2 343 572','1 229 597','419 989' )
-  #  age.data <- data.frame(Age, Male, Female,total, stringsAsFactors=FALSE)
-    # --- Add later ---
-    
+      # --- Add later ---               # Gender & Age demographics
+    #  Age <- c('0-9', '10-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+')
+    #  Male <- c('5 292 766','4 842 847','5 237 328','3 754 553','2 598 068','1 823 299','1 013 912','458 781','176 237')
+    #  Female <- c('5 212 437', '4 755 516', '5 196 531', '2 751 224', '2 970 834', '2 192 398', '1 329 660', '770 816', '402 352')
+    #  total <- c('10 505 203','9 598 363','10 433 859','6 505 777','5 568 902','4 015 697','2 343 572','1 229 597','419 989' )
+    #  age.data <- data.frame(Age, Male, Female,total, stringsAsFactors=FALSE)
+      # --- Add later ---
+      
     
     
     covid_sa <- reactive({
@@ -51,12 +105,8 @@ shinyServer(function(input, output) {
         colnames(data) <- 'Cases'
         data$Cases <- as.numeric(as.character(data$Cases))
         
-        # add to dataframe
-        raw_map@data <- cbind(data, raw_map@data)
-        
-        # province data
-        raw_map@data <- merge(raw_map@data, provincial_data(), by.x='NAME_1', by.y='province')
-        
+        raw_map@data <- cbind(data, raw_map@data)                                                    # add to dataframe
+        raw_map@data <- merge(raw_map@data, provincial_data(), by.x='NAME_1', by.y='province')       # province data
         raw_map})
     # ______________________________ South African Data ______________________________
     
@@ -98,17 +148,16 @@ shinyServer(function(input, output) {
     # _______________________________________________________________________________________________________________________________________
     #  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - Fetch Data - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # _______________________________________________________________________________________________________________________________________
-    
-    
+
     
     
     
     # _______________________________________________________________________________________________________________________________________
-    #  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - Generate Graphs - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    #  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - Generate Graphs - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     # _______________________________________________________________________________________________________________________________________
     
     output$south_africa <- renderLeaflet({
-        # SA map
+         # SA map
         map <- tm_shape(sa_map()) + 
             tm_layout(title='Confirmed Cases in SA') + 
             tm_borders(alpha=0.3) +
@@ -116,6 +165,13 @@ shinyServer(function(input, output) {
                     popup.vars=c('cases'="Cases", "population", 'pop density'="density"))
         tmap_leaflet(map)
     })
+    
+    
+    # circular country graphs
+    output$con_a <- renderPlot({active_ratio_donut_graph(world_data(), input$con_a)})
+    output$con_b <- renderPlot({active_ratio_donut_graph(world_data(), input$con_b)})
+    output$con_c <- renderPlot({active_ratio_donut_graph(world_data(), input$con_c)})
+    output$con_d <- renderPlot({active_ratio_donut_graph(world_data(), input$con_d)})
     
     
     
@@ -132,12 +188,13 @@ shinyServer(function(input, output) {
         
         
     # _______________________________________________________________________________________________________________________________________
-    #  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - Generate Graphs - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    #  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - Generate Graphs - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     # _______________________________________________________________________________________________________________________________________
     
     
 
 })
+
 
 
 
