@@ -29,7 +29,7 @@ countries <- read_csv('data/country_names.csv')$x
 
 
 shinyUI(fluidPage(
-    titlePanel("We can make an Impact, Together"),
+    titlePanel("Understand the Situation"),
     
     
     sidebarLayout(
@@ -44,24 +44,37 @@ shinyUI(fluidPage(
         
         
         mainPanel(
-            leafletOutput('south_africa'),
-            br(),
-            br(),
-            leafletOutput('globe'),
-            br(),
-            br(),
-            column(12, 
-                   column(6,plotOutput('con_a')),
-                   column(6,plotOutput('con_b')),
-                   column(6,plotOutput('con_c')),
-                   column(6,plotOutput('con_d'))),
-            plotOutput('eff_a'),
-            plotOutput('eff_b'),
-            plotOutput('eff_c'),
-            plotOutput('eff_d')
+            
+            tabsetPanel(type='tabs',
+                        tabPanel('South Africa',
+                                 leafletOutput('south_africa'),
+                                 br(),
+                                 br(),
+                                 leafletOutput('globe')),
+                        tabPanel('Country Comparison',
+                                 column(12, 
+                                        column(6,plotOutput('con_a')),
+                                        column(6,plotOutput('con_b')),
+                                        column(6,plotOutput('con_c')),
+                                        column(6,plotOutput('con_d'))),
+                                 plotOutput('eff_a'),
+                                 plotOutput('eff_b'),
+                                 plotOutput('eff_c'),
+                                 plotOutput('eff_d'),
+                                 br(),
+                                 br(),
+                                 plotOutput('det_a'),
+                                 plotOutput('det_b'),
+                                 plotOutput('det_c'),
+                                 plotOutput('det_d')),
+                        tabPanel('Globe')),
+     
+            
         )
     )
 ))
+
+
 
 
 

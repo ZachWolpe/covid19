@@ -34,8 +34,8 @@ configure_workspace <- function() {
 
 
 
-
-
+names(global_population)
+head(global_population)
 
 
 # __________________________________________________________ Raw Data __________________________________________________________
@@ -94,10 +94,36 @@ get_data <- function() {
                                  'country'=`Country (or dependent territory)`,
                                  'population'=Population,
                                  'percent_of_population'=`% of worldpopulation`)
-  
-  
+
   global_population$population <<- as.numeric(gsub(',', '', global_population$population))
   global_population$pop_char <<- paste(round(global_population$population/1000000, 2), 'm', sep='')
+  
+  global_population [1,2] <<- "China"
+  global_population [3,2] <<- "United States"
+  global_population [9,2] <<- "Russia"
+  global_population [20,2] <<- "France"
+  global_population [22,2] <<- "United Kingdom"
+  global_population [25,2] <<- "Tanzania"
+  global_population [34,2] <<- "Ukraine"
+  global_population [39,2] <<- "Morocco"
+  global_population [56,2] <<- "Taiwan"
+  global_population [67,2] <<- "Netherlands"
+  global_population [71,2] <<- "Somalia"
+  global_population [107,2] <<- "Serbia"
+  global_population [131,2] <<- "Georgia"
+  global_population [142,2] <<- "Moldova"
+  global_population [151,2] <<- "Kosovo"
+  global_population [170,2] <<- "Western Sahara"
+  global_population [174,2] <<- "Transnistria"
+  global_population [180,2] <<- "Northern Cyprus"
+  global_population [185,2] <<- "Abkhazia"
+  global_population [191,2] <<- "Artsakh"
+  global_population [212,2] <<- "South Ossetia"
+  global_population$name <<- global_population$country
+  
+  # save data 
+  # write_csv(global_population, './data/global_population.csv')
+  
   # _________________________________ Global Data _________________________________
   
   
@@ -127,21 +153,10 @@ get_data <- function() {
               cum_dead=max(cum_dead)) %>%
     mutate(name=factor(country))
   
-  # merge case data
-  world <- merge(World, case_data, by='name')
-  
-  # merge median age data 
-  world <<- merge(world, med_age, by='name')
+  world <- merge(World, case_data, by='name')                            # merge case data
+  world <<- merge(world, med_age, by='name')                             # merge median age data 
+  world <<- merge(world, global_population, by='name', all.x=TRUE)       # add global population data 
 }
-
-
-
-
-
-
-
-
-
 
 
 
@@ -335,14 +350,26 @@ effectiveness_of_response_graph(n_cases, "United States")
 
 
 # ___________________________________________________ Deaths Per Day ___________________________________________________
+deaths_per_day_graph <- function(n_cases, country_) {
+  
+  x <- n_cases$global[n_cases$global$country==country_,]
+  x <- x[!is.na(x$country),]
+  
+  d <- c(0)
+  for (i in 2:length(x$cum_dead)) d <- c(d, x$cum_dead[i]-x$cum_dead[i-1])
+  
+  x$deaths_per_day <- d
+  
+  ggplot(x, aes(x=time, y=deaths_per_day)) + 
+    geom_point(size=1, col='darkred') +
+    geom_segment(aes(x=time, xend=time, y=0, yend=deaths_per_day),  col='darkred') +
+    ggtitle(paste('Deaths per day in', country_)) +
+    ylab('Deaths') + xlab('Date') +
+    theme_minimal()
+}
 
-
-
-
-
-
-
-
+deaths_per_day_graph(n_cases, 'Italy')
+# ___________________________________________________ Deaths Per Day ___________________________________________________
 
 
 

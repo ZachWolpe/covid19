@@ -9,12 +9,12 @@
 # _______________________________________________________________________________________________________________________________________
 
 
-active_ratio_donut_graph <- function(world, country) {
+active_ratio_donut_graph <- function(world, country_) {
   # Circular Graphic: Case Distribution
   
-  x <- filter(world, name==country)                                         # filter data  
+  x <- filter(world, name==country_)                                         # filter data  
   x$active <- (x$cases - x$cum_heal - x$cum_dead)                           # compute active 
-  data <- data.frame(country=country,                                       # Create data
+  data <- data.frame(country=country_,                                       # Create data
                      category=c("Active", "Deaths", "Recovered"), 
                      count=c(x$active, x$cum_dead, x$cum_heal))
   
@@ -71,14 +71,29 @@ effectiveness_of_response_graph <- function(n_cases, country_) {
 }
 
 
+deaths_per_day_graph <- function(n_cases, country_) {
+  # Deaths Per Day
+  
+  x <- n_cases$global[n_cases$global$country==country_,]
+  x <- x[!is.na(x$country),]
+  
+  d <- c(0)
+  for (i in 2:length(x$cum_dead)) d <- c(d, x$cum_dead[i]-x$cum_dead[i-1])
+  
+  x$deaths_per_day <- d
+  
+  ggplot(x, aes(x=time, y=deaths_per_day)) + 
+    geom_point(size=1, col='darkred') +
+    geom_segment(aes(x=time, xend=time, y=0, yend=deaths_per_day),  col='darkred') +
+    ggtitle(paste('Deaths per day in', country_)) +
+    ylab('Deaths') + xlab('Date') +
+    theme_minimal()
+}
+
+
 # _______________________________________________________________________________________________________________________________________
 #  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - External Functions - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # _______________________________________________________________________________________________________________________________________
-
-
-
-
-
 
 
 
@@ -128,7 +143,7 @@ shinyServer(function(input, output) {
 
     sa_map <- reactive({
         # SA map data
-        raw_map <- readShapeSpatial('data/gadm36_ZAF_shp/gadm36_ZAF_1.shp')
+        raw_map <- readShapeSpatial('./data/gadm36_ZAF_shp/gadm36_ZAF_1.shp')
         
         # Extract number of cases
         data <- t(covid_sa()[covid_sa()$Date=='Cases',1:10])
@@ -147,6 +162,10 @@ shinyServer(function(input, output) {
     # _________________________________ Global Data _________________________________
     # global case data
     n_cases <- reactive(load_nCov2019(lang='en')) 
+    
+    # global population data
+    global_population <- reactive(read.csv('./data/global_population.csv'))
+
     
     
     med_age <- reactive({
@@ -169,8 +188,9 @@ shinyServer(function(input, output) {
                       cum_dead=max(cum_dead)) %>%
             mutate(name=factor(country))
     
-        world <- merge(World, case_data, by='name')           # merge case data
-        world <- merge(world, med_age(), by='name')           # merge median age data
+        world <- merge(World, case_data, by='name')                           # merge case data
+        world <- merge(world, med_age(), by='name')                           # merge median age data
+        world <- merge(world, global_population(), by='name', all.x=TRUE)     # add global population data 
         world
     })
     # _________________________________ Global Data _________________________________
@@ -187,8 +207,8 @@ shinyServer(function(input, output) {
     #  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - Generate Graphs - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     # _______________________________________________________________________________________________________________________________________
     
+    # SA map
     output$south_africa <- renderLeaflet({
-         # SA map
         map <- tm_shape(sa_map()) + 
             tm_layout(title='Confirmed Cases in SA') + 
             tm_borders(alpha=0.3) +
@@ -205,14 +225,14 @@ shinyServer(function(input, output) {
     output$con_d <- renderPlot(active_ratio_donut_graph(world_data(), input$con_d))
     
     
+    # global map
     output$globe <- renderLeaflet({
-        # global map
         tmap <- tm_shape(world_data()) +
             tm_layout(title='Understand the World') + 
             tm_borders(alpha=0.3) +
             tm_fill('cases', title='Cases', palette=c(RColorBrewer::brewer.pal(10,'Blues')[5:9]),
                     breaks=c(0,50,100,200,500,1000,5000,10000,100000),
-                    popup.vars=c('cases', 'cured'='cum_heal', 'fatalities'='cum_dead', 'median age'='median_age', 'population'='pop_est'))
+                    popup.vars=c('cases', 'cured'='cum_heal', 'fatalities'='cum_dead', 'median age'='median_age', 'population'='pop_char'))
         tmap_leaflet(tmap)
     })
     
@@ -223,15 +243,23 @@ shinyServer(function(input, output) {
     output$eff_c <- renderPlot(effectiveness_of_response_graph(n_cases(), input$con_c))
     output$eff_d <- renderPlot(effectiveness_of_response_graph(n_cases(), input$con_d))
     
+    
+    # Deaths per Day
+    output$det_a <- renderPlot(deaths_per_day_graph(n_cases(), input$con_a))
+    output$det_b <- renderPlot(deaths_per_day_graph(n_cases(), input$con_b))
+    output$det_c <- renderPlot(deaths_per_day_graph(n_cases(), input$con_c))
+    output$det_d <- renderPlot(deaths_per_day_graph(n_cases(), input$con_d))
         
         
     # _______________________________________________________________________________________________________________________________________
     #  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - Generate Graphs - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     # _______________________________________________________________________________________________________________________________________
-    
-    
 
 })
+
+
+
+
 
 
 
