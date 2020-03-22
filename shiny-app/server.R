@@ -40,6 +40,37 @@ active_ratio_donut_graph <- function(world, country) {
 }
 
 
+effectiveness_of_response_graph <- function(n_cases, country_) {
+  # Growth in Case Diagnostics
+  
+  x <- filter(n_cases$global, country==country_) 
+  x$cum_open <- x$cum_confirm - x$cum_heal - x$cum_dead
+  
+  data <- data.frame()
+  
+  for (i in 1:nrow(x)) {
+    # for each time step (row)
+    d <- rbind(
+      data.frame(time=x$time[i], country=x$country[i], group='cum_heal', count=x$cum_heal[i]),
+      data.frame(time=x$time[i], country=x$country[i], group='cum_dead', count=x$cum_dead[i]),
+      data.frame(time=x$time[i], country=x$country[i], group='cum_open', count=x$cum_open[i]))
+    data <- rbind(data,d)
+  }
+  
+  data %>%
+    ggplot(aes(x=time, y=count, fill=group)) + 
+    geom_area(colour="grey", size=.2, alpha=.9) +
+    scale_fill_brewer(palette="Blues",
+                      name="Cases",
+                      breaks=c("cum_heal", "cum_dead", "cum_open"),
+                      labels=c("Recovered", "Deaths", "Active")) +
+    theme_minimal() +
+    ggtitle(paste('Effectiveness of Response:', country_)) + 
+    xlab('Date') +
+    ylab('Cases') 
+}
+
+
 # _______________________________________________________________________________________________________________________________________
 #  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - External Functions - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # _______________________________________________________________________________________________________________________________________
@@ -168,11 +199,10 @@ shinyServer(function(input, output) {
     
     
     # circular country graphs
-    output$con_a <- renderPlot({active_ratio_donut_graph(world_data(), input$con_a)})
-    output$con_b <- renderPlot({active_ratio_donut_graph(world_data(), input$con_b)})
-    output$con_c <- renderPlot({active_ratio_donut_graph(world_data(), input$con_c)})
-    output$con_d <- renderPlot({active_ratio_donut_graph(world_data(), input$con_d)})
-    
+    output$con_a <- renderPlot(active_ratio_donut_graph(world_data(), input$con_a))
+    output$con_b <- renderPlot(active_ratio_donut_graph(world_data(), input$con_b))
+    output$con_c <- renderPlot(active_ratio_donut_graph(world_data(), input$con_c))
+    output$con_d <- renderPlot(active_ratio_donut_graph(world_data(), input$con_d))
     
     
     output$globe <- renderLeaflet({
@@ -185,6 +215,14 @@ shinyServer(function(input, output) {
                     popup.vars=c('cases', 'cured'='cum_heal', 'fatalities'='cum_dead', 'median age'='median_age', 'population'='pop_est'))
         tmap_leaflet(tmap)
     })
+    
+    
+    # Growth in Case Diagnostics
+    output$eff_a <- renderPlot(effectiveness_of_response_graph(n_cases(), input$con_a))
+    output$eff_b <- renderPlot(effectiveness_of_response_graph(n_cases(), input$con_b))
+    output$eff_c <- renderPlot(effectiveness_of_response_graph(n_cases(), input$con_c))
+    output$eff_d <- renderPlot(effectiveness_of_response_graph(n_cases(), input$con_d))
+    
         
         
     # _______________________________________________________________________________________________________________________________________
@@ -194,6 +232,11 @@ shinyServer(function(input, output) {
     
 
 })
+
+
+
+
+
 
 
 

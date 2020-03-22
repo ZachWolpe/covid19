@@ -298,6 +298,43 @@ active_ratio_donut_graph(world, "Italy")
 
 
 
+# ___________________________________________________ Growth in Case Diagnostics ___________________________________________________
+
+effectiveness_of_response_graph <- function(n_cases, country_) {
+  
+  x <- filter(n_cases$global, country==country_) 
+  x$cum_open <- x$cum_confirm - x$cum_heal - x$cum_dead
+
+  data <- data.frame()
+  
+  for (i in 1:nrow(x)) {
+    # for each time step (row)
+    d <- rbind(
+      data.frame(time=x$time[i], country=x$country[i], group='cum_heal', count=x$cum_heal[i]),
+      data.frame(time=x$time[i], country=x$country[i], group='cum_dead', count=x$cum_dead[i]),
+      data.frame(time=x$time[i], country=x$country[i], group='cum_open', count=x$cum_open[i]))
+    data <- rbind(data,d)
+  }
+  
+  data %>%
+    ggplot(aes(x=time, y=count, fill=group)) + 
+    geom_area(colour="grey", size=.2, alpha=.9) +
+    scale_fill_brewer(palette="Blues",
+                      name="Cases",
+                      breaks=c("cum_heal", "cum_dead", "cum_open"),
+                      labels=c("Recovered", "Deaths", "Active")) +
+    theme_minimal() +
+    ggtitle(paste('Effectiveness of Response:', country_)) + 
+    xlab('Date') +
+    ylab('Cases') 
+}
+
+effectiveness_of_response_graph(n_cases, "United States")
+# ___________________________________________________ Growth in Case Diagnostics ___________________________________________________
+
+
+
+# ___________________________________________________ Deaths Per Day ___________________________________________________
 
 
 
@@ -305,6 +342,15 @@ active_ratio_donut_graph(world, "Italy")
 
 
 
+
+
+
+
+
+
+ 
+
+ 
 
 
 
