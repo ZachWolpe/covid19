@@ -34,8 +34,6 @@ configure_workspace <- function() {
 
 
 
-names(global_population)
-head(global_population)
 
 
 # __________________________________________________________ Raw Data __________________________________________________________
@@ -66,7 +64,36 @@ get_data <- function() {
   
   # geospatial data
   south_africa <<- readShapeSpatial('data/gadm36_ZAF_shp/gadm36_ZAF_1.shp')
+  south_africa <<- rgdal::readOGR('data/gadm36_ZAF_shp/gadm36_ZAF_1.shp')
   # ______________________________ South African Data ______________________________
+  
+  
+  
+  
+  
+  
+
+  # _________________________________ Concatenate Data _________________________________
+  
+
+  
+  # Extract number of cases
+  test <- t(covid_sa[covid_sa$Day=='Cases',3:11])
+  test <- data.frame(test[1:nrow(test),])
+  colnames(test) <- 'Cases'
+  test$Cases <- as.numeric(as.character(test$Cases))
+  
+  # add to dataframe
+  south_africa@data <<- cbind(test, south_africa@data)
+  
+  # province data
+  south_africa@data <<- merge(south_africa@data, provincial.data, by.x='NAME_1', by.y='province')
+  # _________________________________ Concatenate Data _________________________________
+  
+  
+  
+
+  
   
   
   
@@ -90,11 +117,11 @@ get_data <- function() {
   global_population <<- read_html(global_population_url) %>% html_node(xpath='//*[@id="mw-content-text"]/div/table') %>% html_table(fill=T)
   
   global_population <<- transmute(global_population, 
-                                 'rank'=Rank, 
-                                 'country'=`Country (or dependent territory)`,
-                                 'population'=Population,
-                                 'percent_of_population'=`% of worldpopulation`)
-
+                                  'rank'=Rank, 
+                                  'country'=`Country (or dependent territory)`,
+                                  'population'=Population,
+                                  'percent_of_population'=`% of worldpopulation`)
+  
   global_population$population <<- as.numeric(gsub(',', '', global_population$population))
   global_population$pop_char <<- paste(round(global_population$population/1000000, 2), 'm', sep='')
   
@@ -127,20 +154,8 @@ get_data <- function() {
   # _________________________________ Global Data _________________________________
   
   
-
-  # _________________________________ Concatenate Data _________________________________
-  # Extract number of cases
-  test <- t(covid_sa[covid_sa$Date=='Cases',1:10])
-  test <- data.frame(test[2:nrow(test),])
-  colnames(test) <- 'Cases'
-  # test$Cases <- as.numeric(as.character(test$Cases))
   
-  # add to dataframe
-  south_africa@data <<- cbind(test, south_africa@data)
   
-  # province data
-  south_africa@data <<- merge(south_africa@data, provincial.data, by.x='NAME_1', by.y='province')
-  # _________________________________ Concatenate Data _________________________________
   
   
   # _________________________________ World Map Data _________________________________

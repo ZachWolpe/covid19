@@ -1,4 +1,8 @@
 
+
+
+
+
 # Dependencies
 
 # remotes::install_github("GuangchuangYu/nCov2019")
@@ -22,6 +26,7 @@ library(chinamap)
 library(plotly)
 library(tidyr)
 library(ggrepel)
+library(rgdal)
 setwd("~/Desktop/covid19")
 
 

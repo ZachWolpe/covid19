@@ -143,11 +143,13 @@ shinyServer(function(input, output) {
 
     sa_map <- reactive({
         # SA map data
-        raw_map <- readShapeSpatial('./data/gadm36_ZAF_shp/gadm36_ZAF_1.shp')
+        # raw_map <- readShapeSpatial('data/gadm36_ZAF_shp/gadm36_ZAF_1.shp')
+        # raw_map <- sf::st_read('data/gadm36_ZAF_shp/gadm36_ZAF_1.shp')
+        raw_map <- rgdal::readOGR('data/gadm36_ZAF_shp/gadm36_ZAF_1.shp')
         
         # Extract number of cases
-        data <- t(covid_sa()[covid_sa()$Date=='Cases',1:10])
-        data <- data.frame(data[2:nrow(data),])
+        data <- t(covid_sa()[covid_sa()$Day=='Cases',3:11])
+        data <- data.frame(data[1:nrow(data),])
         colnames(data) <- 'Cases'
         data$Cases <- as.numeric(as.character(data$Cases))
         
@@ -212,8 +214,9 @@ shinyServer(function(input, output) {
         map <- tm_shape(sa_map()) + 
             tm_layout(title='Confirmed Cases in SA') + 
             tm_borders(alpha=0.3) +
-            tm_fill('Cases', title='Confirmed Cases', palette=c((RColorBrewer::brewer.pal(10, 'OrRd')[2:7])), 
-                    popup.vars=c('cases'="Cases", "population", 'pop density'="density"))
+            tm_fill('Cases', title='Confirmed Cases', palette=c(RColorBrewer::brewer.pal(10, 'OrRd')[3:7]),
+                    breaks=c(0,10,20,50,100,200),
+                    popup.vars=c('cases'="Cases", "population_2", 'pop density'="density"))
         tmap_leaflet(map)
     })
     
