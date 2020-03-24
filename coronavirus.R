@@ -176,7 +176,12 @@ get_data <- function() {
 
 
 
-
+# _________________________ CLEAN Age Data
+library('readxl')
+age_dist <- read_xls('data/age_data.xls')
+names(age_dist)
+age_dist <- select(age_dist, c( "Country Name", "IncomeGroup", "Region", "00-14", "15-64", "65+"))
+write.csv(x=age_dist, file='data/age_dist.csv')
 
 
 

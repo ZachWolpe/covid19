@@ -20,7 +20,7 @@ configure_workspace <- function() {
 
   # remotes::install_github("GuangchuangYu/nCov2019")
   library(flexdashboard)
-  #library(shiny)
+  library(shiny)
   library(tidyverse)
   library(coronavirus)
   library(sf)
@@ -40,6 +40,7 @@ configure_workspace <- function() {
   library(tidyr)
   library(ggrepel)
   library(rgdal)
+  library(readxl)
   setwd("~/Desktop/covid19")
   
 }
@@ -121,6 +122,57 @@ get_data <- function() {
   # _________________________________ Global Data _________________________________
   
   
+  
+  # _________________________________ Worldometer Data _________________________________
+  # Script to scrape summary data from 'https://www.worldometers.info/coronavirus/' and remove commas.
+  worldometer_url <- 'https://www.worldometers.info/coronavirus/'
+  worldometer <<- read_html(worldometer_url) %>% html_node(xpath='//*[@id="main_table_countries_today"]') %>% html_table(fill=T)
+  worldometer$TotalCases <- as.numeric(gsub(",","",worldometer$TotalCases))
+  worldometer$NewCases <- as.numeric(gsub(",","",worldometer$NewCases))
+  worldometer$TotalDeaths <- as.numeric(gsub(",","",worldometer$TotalDeaths))
+  worldometer$TotalCases <- as.numeric(gsub(",","",worldometer$TotalCases))
+  worldometer$NewDeaths <- as.numeric(gsub(",","",worldometer$NewDeaths))
+  worldometer$NewCases <- as.numeric(gsub(",","",worldometer$NewCases))
+  worldometer$TotalRecovered <- as.numeric(gsub(",","",worldometer$TotalRecovered))
+  worldometer$ActiveCases <- as.numeric(gsub(",","",worldometer$ActiveCases))
+  worldometer$`Serious,Critical` <- as.numeric(gsub(",","",worldometer$`Serious,Critical`))
+  worldometer$`Tot Cases/1M pop` <<- as.numeric(gsub(",","",worldometer$`Tot Cases/1M pop`))
+  # _________________________________ Worldometer Data _________________________________
+
+  
+  #_____________________________ Scrape financial data ______________________________________
+  sp500_url <- 'https://za.investing.com/indices/us-spx-500-futures-historical-data'
+  sp500 <<- read_html(sp500_url) %>% html_node(xpath='//*[@id="js-main-container"]/section[2]/div/section[2]/section[2]/div[1]/div/table') %>% html_table(fill = T)
+  
+  sa40_url <- 'https://za.investing.com/indices/south-africa-40-futures-historical-data'
+  sa40 <<- read_html(sa40_url) %>% html_node(xpath='//*[@id="js-main-container"]/section[2]/div/section[2]/section[2]/div[1]/div/table') %>% html_table(fill = T)
+  
+  nasdaq_url <- 'https://za.investing.com/indices/nq-100-futures-historical-data'
+  nasdaq <<- read_html(nasdaq_url) %>% html_node(xpath='//*[@id="js-main-container"]/section[2]/div/section[2]/section[2]/div[1]/div/table') %>% html_table(fill = T)
+  
+  london_url <- 'https://za.investing.com/equities/london-stock-exchange-historical-data'
+  london <<- read_html(london_url) %>% html_node(xpath='//*[@id="js-main-container"]/section[2]/div/section[2]/section[2]/div[1]/div/table') %>% html_table(fill = T)
+  
+  nyse_url <- 'https://za.investing.com/indices/nyse-composite-historical-data'
+  nyse <<- read_html(nyse_url) %>% html_node(xpath='//*[@id="js-main-container"]/section[2]/div/section[2]/section[2]/div[1]/div/table') %>% html_table(fill = T)
+  
+  ftse_url <- 'https://za.investing.com/indices/uk-100-historical-data'
+  ftse <<- read_html(ftse_url) %>% html_node(xpath='//*[@id="js-main-container"]/section[2]/div/section[2]/section[2]/div[1]/div/table') %>% html_table(fill = T)
+  
+  hk50_url <- 'https://za.investing.com/indices/hang-sen-40-historical-data'
+  hk50 <<- read_html(hk50_url) %>% html_node(xpath='//*[@id="js-main-container"]/section[2]/div/section[2]/section[2]/div[1]/div/table') %>% html_table(fill = T)
+  
+  gold_url <- 'https://za.investing.com/commodities/gold-historical-data'
+  gold <<- read_html(gold_url) %>% html_node(xpath='//*[@id="js-main-container"]/section[2]/div/section[2]/section[2]/div[1]/div/table') %>% html_table(fill = T)
+  
+  zar_url <- 'https://za.investing.com/currencies/usd-zar-historical-data'
+  zar <<- read_html(zar_url) %>% html_node(xpath='//*[@id="js-main-container"]/section[1]/div/section[2]/section[2]/div[1]/div/table') %>% html_table(fill = T)
+  
+  btc_url <- 'https://za.investing.com/crypto/bitcoin/btc-usd-historical-data'
+  btc <<- read_html(btc_url) %>% html_node(xpath= '//*[@id="curr_table"]') %>% html_table(fill = T)
+  #_____________________________ Scrape financial data ______________________________________
+
+
   
   
   # _________________________________ World Map Data _________________________________
@@ -228,7 +280,6 @@ deaths_per_day_graph <- function(n_cases, country_) {
 
 
 
-
 # ___________________________________________ Themes  ___________________________________________
 colour_cases <- '#1f77b4'
 colour_active <- 'lightblue'
@@ -236,7 +287,6 @@ colour_recovered <- 'darkgreen'
 colour_dead <- 'darkred'
 
 ```
-
 
 
 
@@ -250,15 +300,11 @@ Row
 ```{r}
 
 # no. confirmed 
-c <- as.numeric(covid_sa$Confirmed)
-c[is.na(c)] <- 0
-c <- sum(c)
+c <- as.numeric(worldometer[worldometer$`Country,Other`=='South Africa',]$TotalCases)
 
 # no. deaths
-d <- as.numeric(covid_sa$Deaths)
-d[is.na(d)] <- 0
-d <- sum(d)
-
+d <- as.numeric(worldometer[worldometer$`Country,Other`=='South Africa',]$TotalDeaths)
+d[is.na(d)]=0
 
 # no. tests
 t <- as.numeric(covid_sa$Agtests)
@@ -266,9 +312,10 @@ t[is.na(t)] <- 0
 t <- max(t)
 
 # no. recovered
-r <- as.numeric(covid_sa$Rec)
-r[is.na(r)] <- 0
-r <- max(r)
+r <- as.numeric(worldometer[worldometer$`Country,Other`=='South Africa',]$TotalRecovered)
+
+
+
 
 
 valueBox(value = paste(format(c, big.mark = ","), "", sep = " "), 
@@ -354,7 +401,13 @@ tmap_leaflet(
 
 
 
-Global Metrics
+
+
+
+
+
+
+Country Analysis
 =======================================================================
 
 
@@ -366,56 +419,153 @@ Compare countries. Data updated once daily.
 ```{r input}
 countries <- read_csv('data/country_names.csv')$x
 
-selectInput('con_a', 'Country 1', selected='South Africa', countries)
-selectInput('con_b', 'Country 2', selected='China', countries)
-selectInput('con_c', 'Country 3', selected='Italy', countries)
-selectInput('con_d', 'Country 4', selected='United States', countries)
+selectInput('con_a', 'Select a Country', selected='China', countries)
 
 
 ```
 
 
-Row 
+Row {width=600}
 -----------------------------------------------------------------------
 
-### {}
+### Deaths per Day {width=400}
+```{r}
+renderPlot(deaths_per_day_graph(n_cases, input$con_a))
+```
+
+
+### Situation Update {width=200}
 ```{r}
 renderPlot(active_ratio_donut_graph(world, input$con_a))
 ```
-###  {}
-```{r}
-renderPlot(active_ratio_donut_graph(world, input$con_b))
-```
-### {}
-```{r}
-renderPlot(active_ratio_donut_graph(world, input$con_c))
-```
-### {}  
-```{r}
-renderPlot(active_ratio_donut_graph(world, input$con_d))
-```
 
 
 
-Row 
+Row {width=600}
 -----------------------------------------------------------------------
 
-### {}
+### {data-width=400}
 ```{r}
 renderPlot(effectiveness_of_response_graph(n_cases, input$con_a))
 ```
-###  {}
+
+
+### {data-width=200}
 ```{r}
-renderPlot(effectiveness_of_response_graph(n_cases, input$con_b))
+
+age_dist <- read_csv('data/age_dist.csv')
+Age_distribution_plot <- function(country_, age_dist=age_dist) {
+  
+  # create data
+  x <- age_dist[age_dist$`Country Name`==country_,]            
+  x <- data.frame(rbind(rbind(
+      cbind(value=x$`00-14`, group=1), 
+      cbind(value=x$`15-64`, group=2)
+    ),
+    cbind(value=x$`65+`, group=3)))
+  
+  
+  ggplot(x, aes(x=group, y=value)) +
+    geom_point(size=3, col=colour_cases) +
+    geom_segment(aes(x=group, xend=group, y=0, yend=value), col=colour_cases) +
+    stat_smooth(geom='line', col=colour_cases) +
+    theme_minimal() + xlab('Age') + ylab('Percent of Population') + ggtitle(paste('Age Distribution of', country_)) +
+    scale_x_continuous(
+      breaks=c(1,2,3), labels=c('0-14', '15-64', '65+'))
+  
+}
+
+renderPlot(Age_distribution_plot(input$con_a,age_dist))
+
 ```
-### {}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Global Economy
+=======================================================================
+
+
+
+
+Input {.sidebar}
+-----------------------------------------------------------------------
+
 ```{r}
-renderPlot(effectiveness_of_response_graph(n_cases, input$con_c))
+
+# create one dataset
+sp500$indx <- 'sp500'
+sp500 <- sp500[c('Date', 'Price', 'indx')]
+btc$indx <- 'btc'
+btc <- btc[c('Date', 'Price', 'indx')]
+ftse$indx <- 'ftse'
+ftse <- ftse[c('Date', 'Price', 'indx')]
+gold$indx <- 'gold'
+gold <- gold[c('Date', 'Price', 'indx')]
+hk50$indx <- 'hk50'
+hk50 <- hk50[c('Date', 'Price', 'indx')]
+london$indx <- 'london'
+london <- london[c('Date', 'Price', 'indx')]
+nasdaq$indx <- 'nasdaq'
+nasdaq <- nasdaq[c('Date', 'Price', 'indx')]
+nyse$indx <- 'nyse'
+nyse <- nyse[c('Date', 'Price', 'indx')]
+sa40$indx <- 'sa40'
+sa40 <- sa40[c('Date', 'Price', 'indx')]
+zar$indx <- 'zar'
+zar <- zar[c('Date', 'Price', 'indx')]
+data <- data.frame(rbind(sp500,btc,ftse,gold,hk50,london,nasdaq,nyse,sa40,zar))
+
+
+data$Date <- as.Date(data$Date, format='%b %d, %Y')                              # convert to date class
+data$Price <- as.numeric(sub(',', '', data$Price))                               # convert to double
+
+# compute standarize prices
+data <- data %>% group_by(indx) %>% mutate(std_price = (Price-min(Price))/max(Price))
+
+
+selectizeInput('equity_data', 'Select Markets', selected='sa40', choices=c(unique(data$indx)), multiple=T)
+
 ```
-### {}
+
+
+Row {width=600}
+-----------------------------------------------------------------------
+
+
+### Global Financial Health {width=400}
 ```{r}
-renderPlot(effectiveness_of_response_graph(n_cases, input$con_d))
+
+
+financial_graph <- function(input_var_) {
+    data[data$indx==c(input_var_),] %>%
+    ggplot(aes(x=Date, y=std_price, fill=indx)) + ggtitle('Global Markets') + 
+    ylab('Price') + theme(axis.ticks.y = element_blank(), axis.text.y = element_blank()) +
+    geom_line(aes(x=Date, y=std_price, col=indx)) + theme_minimal() 
+ 
+
+}
+
+
+renderPlot(financial_graph(input$equity_data))
+
+
 ```
+
 
 
 
