@@ -188,6 +188,10 @@ get_data <- function() {
   world <<- merge(World, case_data, by='name')                           # merge case data
   world <<- merge(world, med_age, by='name')                             # merge median age data 
   world <<- merge(world, global_population, by='name', all.x=TRUE)       # add global population data 
+  
+  worldometer$name = worldometer$`Country,Other`
+  world2 <<- merge(world, worldometer, by='name')
+  
 }
 
 
@@ -198,14 +202,47 @@ get_data()
 
 
 # ___________________________________________ Graphics Functions ___________________________________________
-active_ratio_donut_graph <- function(world, country_) {
+# active_ratio_donut_graph <- function(world, country_) {
+#   # Circular Graphic: Case Distribution
+#   
+#   x <- filter(world, name==country_)                                         # filter data  
+#   x$active <- (x$cases - x$cum_heal - x$cum_dead)                           # compute active 
+#   data <- data.frame(country=country_,                                       # Create data
+#                      category=c("Active", "Deaths", "Recovered"), 
+#                      count=c(x$active, x$cum_dead, x$cum_heal))
+#   
+#   data$fraction <- data$count / sum(data$count)                             # Compute percentages
+#   data$ymax <- cumsum(data$fraction)                                        # Compute the cumulative percentages (top of each rectangle)
+#   data$ymin <- c(0, head(data$ymax, n=-1))                                  # Compute the bottom of each rectangle
+#   data$labelPosition <- (data$ymax + data$ymin) / 2                         # Compute label position
+#   data$label <- paste0(data$category, "\n", data$count)                     # Compute a good label
+#   
+#   # Make the plot
+#   ggplot(data, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=category)) +
+#     geom_rect() +
+#     geom_text_repel(x=1, aes(y=labelPosition, label=label, color=category), size=6) +
+#     # geom_text() + # x here controls label position (inner / outer)
+#     scale_fill_brewer(palette=3) +
+#     scale_color_brewer(palette=3) +
+#     coord_polar(theta="y") +
+#     xlim(c(-1, 4)) +
+#     theme_void() +
+#     theme(legend.position = "none") +
+#     labs(title = paste("Covid-19", data$country, "Summary")) +
+#     theme(plot.title = element_text(hjust = 0.5, size = 18, colour = 'darkgrey'))
+# }
+
+active_ratio_donut_graph <- function(worldometer, country_) {
   # Circular Graphic: Case Distribution
   
-  x <- filter(world, name==country_)                                         # filter data  
-  x$active <- (x$cases - x$cum_heal - x$cum_dead)                           # compute active 
+  
+  x <- filter(worldometer, `Country,Other`==country_)                        # filter data  
+   
   data <- data.frame(country=country_,                                       # Create data
                      category=c("Active", "Deaths", "Recovered"), 
-                     count=c(x$active, x$cum_dead, x$cum_heal))
+                     count=c(as.numeric(sub(',', '',x$ActiveCases)), 
+                             as.numeric(sub(',', '',x$TotalDeaths)),
+                             as.numeric(sub(',', '',x$TotalRecovered))))
   
   data$fraction <- data$count / sum(data$count)                             # Compute percentages
   data$ymax <- cumsum(data$fraction)                                        # Compute the cumulative percentages (top of each rectangle)
@@ -276,6 +313,8 @@ deaths_per_day_graph <- function(n_cases, country_) {
     ylab('Deaths') + xlab('Date') +
     theme_minimal()
 }
+
+
 # ___________________________________________ Graphics Functions ___________________________________________
 
 
@@ -365,6 +404,7 @@ Row
 -----------------------------------------------------------------------
 
 
+
 ### South Africa {data-width=350}
 
 ```{r}
@@ -388,16 +428,27 @@ tmap_leaflet(
 
 
 tmap_leaflet(
-  tm_shape(world) +
-    tm_layout(title='Understand the World') + 
-          tm_borders(alpha=0.3) +
-          tm_fill('cases', title='Cases', palette=c(RColorBrewer::brewer.pal(9,'Blues')[5:9]),
+  tm_shape(world2) +
+   # tm_layout(title='Understand the World') + 
+          tm_borders(alpha=0.3) + 
+          tm_fill('TotalCases', title='Cases', palette=c(RColorBrewer::brewer.pal(9,'Blues')[5:9]),
+                  legend.show = F,
                   breaks=c(0,50,100,200,500,1000,5000,10000,100000),
-                  popup.vars=c('cases', 'cured'='cum_heal', 'fatalities'='cum_dead', 'median age'='median_age', 'population'='pop_char'))
+                  popup.vars=c('cases'='TotalCases', 'cured'='TotalRecovered', 'fatalities'='TotalDeaths', 
+                               'median age'='median_age', 'population'='pop_char'))
 )
 
 
 ```
+
+
+
+
+
+
+
+
+
 
 
 
@@ -428,6 +479,8 @@ selectInput('con_a', 'Select a Country', selected='China', countries)
 Row {width=600}
 -----------------------------------------------------------------------
 
+
+
 ### Deaths per Day {width=400}
 ```{r}
 renderPlot(deaths_per_day_graph(n_cases, input$con_a))
@@ -436,7 +489,7 @@ renderPlot(deaths_per_day_graph(n_cases, input$con_a))
 
 ### Situation Update {width=200}
 ```{r}
-renderPlot(active_ratio_donut_graph(world, input$con_a))
+renderPlot(active_ratio_donut_graph(worldometer, input$con_a))
 ```
 
 
@@ -547,7 +600,7 @@ Row {width=600}
 -----------------------------------------------------------------------
 
 
-### Global Financial Health {width=400}
+### Global Financial Health {width=550}
 ```{r}
 
 
@@ -560,13 +613,15 @@ financial_graph <- function(input_var_) {
 
 }
 
-
 renderPlot(financial_graph(input$equity_data))
 
 
 ```
 
 
+### Whats Important to You? {width=50}
+
+![alt](connect.png)
 
 
 
