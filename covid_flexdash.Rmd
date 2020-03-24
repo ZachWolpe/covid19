@@ -7,7 +7,12 @@ output:
     source_code: embed
   # vertical_layout: fill
 runtime: shiny
+# rsconnect::setAccountInfo(name='zachwolpe',
+# 			  token='21A6F669A8AE1C97F11879BA0A0AC3F3',
+# 			  secret='<SECRET>')
 ---
+
+
 
 
 
@@ -20,6 +25,7 @@ configure_workspace <- function() {
 
   # remotes::install_github("GuangchuangYu/nCov2019")
   library(flexdashboard)
+  library(knitr)
   library(shiny)
   library(tidyverse)
   library(coronavirus)
@@ -439,6 +445,8 @@ tmap_leaflet(
 )
 
 
+
+
 ```
 
 
@@ -600,7 +608,7 @@ Row {width=600}
 -----------------------------------------------------------------------
 
 
-### Global Financial Health {width=550}
+### Global Financial Health {data-width=350}
 ```{r}
 
 
@@ -619,9 +627,18 @@ renderPlot(financial_graph(input$equity_data))
 ```
 
 
-### Whats Important to You? {width=50}
 
-![alt](connect.png)
+### Whats Important to You? {data-width=250}
+
+What do you want to see next?
+
+Connect with us, share your ideas:
+
+Zach: 084 496 8779
+Keagan: 083 642 3300
+
+
+
 
 
 
